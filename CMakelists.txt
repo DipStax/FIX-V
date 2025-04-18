@@ -1,0 +1,62 @@
+cmake_minimum_required (VERSION 3.10)
+
+project (FIX_Tester)
+
+set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+
+function (msvc_source_file src_file)
+    foreach (file IN LISTS ${src_file})
+        get_filename_component (file_path "${file}" PATH)
+        file (RELATIVE_PATH rfile_path "${CMAKE_SOURCE_DIR}" "${file_path}")
+        string (REPLACE "/" "\\" file_path_msvc "${rfile_path}")
+        source_group ("${file_path_msvc}" FILES "${file}")
+    endforeach ()
+endfunction ()
+
+find_package(Threads REQUIRED)
+
+# Option pour télécharger Asio si non présent
+include(FetchContent)
+FetchContent_Declare(
+    asio
+    GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(asio)
+
+include_directories(include)
+
+file (GLOB_RECURSE FT_Message_SRC
+    include/Common/Message/**.inl
+    include/Common/Message/**.hpp
+    src/Common/Message/**.cpp
+)
+msvc_source_file (FT_Message_SRC)
+
+add_library (FT_Message
+    INTERFACE
+        ${FT_Message_SRC}
+)
+set_target_properties(FT_Message PROPERTIES LINKER_LANGUAGE CXX)
+
+file (GLOB_RECURSE FT_App_SRC
+    include/FT.App/**.inl
+    include/FT.App/**.hpp
+    src/FT.App/**.cpp
+)
+msvc_source_file (FT_App_SRC)
+
+add_executable (FT_App
+    ${FT_App_SRC}
+)
+
+target_include_directories(FT_App
+    PRIVATE
+        ${asio_SOURCE_DIR}/asio/include
+)
+target_link_libraries (FT_App
+    PUBLIC
+        FT_Message
+        asio
+)
