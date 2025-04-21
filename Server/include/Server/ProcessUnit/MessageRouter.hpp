@@ -3,7 +3,7 @@
 #include <concepts>
 
 #include "Server/ProcessUnit/ProcessInterface.hpp"
-#include "Common/Message/MessageType.hpp"
+#include "Server/ErrorHelper.hpp"
 
 #ifndef SERVER_TARGET_NAME
     #define SERVER_TARGET_NAME "Server"
@@ -49,59 +49,57 @@ namespace fix::serv
                 while (m_running) {
                     if (!m_input->empty()) {
                         MessageContext<ContextData> ctx = m_input->pop_front();
-                        std::map<std::string, std::string> msg = mapMessage(ctx.data);
-                        std::pair<bool, fix::msg::Reject> result = messageVerification(msg);
-                        char msgtype = 0;
 
-                        if (result.first)
-                            m_reject_op->push(std::move(result.second));
-                        switch (msg["35"][0]) {
-                            case fix::msg::Logon::MsgType:
-                                MsgDeserializer::Deserialize<fix::msg::Logon>(msg, [_ctx = std::move(ctx), this] (const fix::msg::Logon &_data) {
-                                    deserialized<fix::msg::Logon>(_data, m_logon_op, _ctx);
-                                });
-                                break;
-                            default:
-                                m_reject_op->push(notSupportedMessage(ctx, msg));
+                        try {
+                            char msgtype = getMessageType(ctx.data);
+
+                            switch (msgtype) {
+                                case msg::Logon::MsgType:
+                                    // todo
+                                    // MsgDeserializer::Deserialize<msg::Logon>(ctx.data, [this, ctx] (const msg::Logon &_data) {
+                                    //     this->deserialized(_data, m_logon_op, ctx);
+                                    // });
+                                    break;
+                                default:
+                                    throw com::RejectException(err::InvalidMsgType, msgtype + " is not supported");
+                            }
+                        } catch (com::RejectException &_excp) {
+                            m_reject_op->push(ctx.as<msg::Reject>(ErrorHelper::RejectException(ctx, _excp)));
+                        } catch (std::exception &_excp) {
+                            m_reject_op->push(ctx.as<msg::Reject>(ErrorHelper::internalError(ctx, _excp)))
                         }
                     }
                 }
             }
 
         private:
-            std::pair<bool, fix::msg::Reject> messageVerification(const std::map<std::string, std::string> &_msg)
+            char getMessageType(const std::string &_msg)
             {
-                // todo
-                // seq number
-                // begin string
-                return { false, {} };
+                std::istringstream ss(_str);
+                std::string token;
+
+                for (uint8_t it; it < 2; it++)
+                    std::getline(ss, token, '<' );
+                std::vector<std::string> kvpair = utils::split<'='>(token);
+                if (kvpair != 2)
+                    throw; // todo
+                if (kvpair[0] != "35")
+                    throw; // todo
+                if (kvpair[1].size() != 1)
+                    throw; // todo
+                return kvpair[1][0];
             }
 
             template<class T>
             void deserialized(const T &_data, std::shared_ptr<OutputMessageQueue<T>> _output, const MessageContext<ContextData> &&_ctx)
             {
-                std::pair<bool, fix::msg::Reject> result = _data.verify();
-
-                if (result.first)
-                    m_reject_op->push(std::move(_ctx.as<fix::msg::Reject>(result.second)));
-                else
-                    _output->push(std::move(_ctx.as<fix::msg::Logon>(_data)));
+                // _data.Header.verify(...);
+                _output->push(std::move(_ctx.as<msg::Logon>(_data)));
             }
 
-            MessageContext<fix::msg::Reject> notSupportedMessage(const MessageContext<ContextData> &_ctx, const std::map<std::string, std::string> &_msg)
-            {
-                fix::msg::Reject reject{};
-
-                reject.Header.set<Tag::SenderCompId>(SERVER_TARGET_NAME);
-                reject.Header.set<Tag::TargetCompId>(_msg["49"]);
-                reject.Header.set<Tag::MsgSeqNum>(std::to_string(_ctx.socket->newSeqNum()));
-                reject.set<Tag::RefSeqNum>(_msg["45"]);
-                return _ctx.as<fix::msg::Reject>()
-            }
-
-            std::shared_ptr<OutputMessageQueue<fix::msg::Logon>> m_logon_op = std::make_shared<OutputMessageQueue<fix::msg::Logon>>();
-            std::shared_ptr<OutputMessageQueue<fix::msg::HeartBeat>> m_heartbeat_op = std::make_shared<OutputMessageQueue<fix::msg::HeartBeat>>();
-            std::shared_ptr<OutputMessageQueue<fix::msg::Reject>> m_reject_op = std::make_shared<OutputMessageQueue<fix::msg::Reject>>();
+            std::shared_ptr<OutputMessageQueue<msg::Logon>> m_logon_op = std::make_shared<OutputMessageQueue<msg::Logon>>();
+            std::shared_ptr<OutputMessageQueue<msg::HeartBeat>> m_heartbeat_op = std::make_shared<OutputMessageQueue<msg::HeartBeat>>();
+            std::shared_ptr<OutputMessageQueue<msg::Reject>> m_reject_op = std::make_shared<OutputMessageQueue<msg::Reject>>();
 
             std::shared_ptr<InputQueue> m_input = nullptr;
     };

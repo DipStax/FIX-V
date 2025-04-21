@@ -12,12 +12,29 @@ namespace fix::serv
         m_socket.async_read_some(asio::buffer(m_buffer, NET_BUFFER_SIZE), InternalSocket::received);
     }
 
+    void InternalSocket::setName(const std::string &_name)
+    {
+        m_name = _name;
+    }
+
+    const std::string &InternalSocket::getName() const
+    {
+        return m_name;
+    }
+
+    void InternalSocket::setSeqNum(size_t _seqnum)
+    {
+        m_seqnum = _seqnum;
+    }
+
+    size_t InternalSocket::getSeqNum()
+    {
+        return m_seqnum;
+    }
+
     size_t InternalSocket::newSeqNum()
     {
-        size_t cpy = m_seqnum;
-
-        m_seqnum++;
-        return cpy;
+        return ++m_seqnum;
     }
 
     void InternalSocket::received(std::error_code _ec, size_t _len)

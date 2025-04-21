@@ -20,6 +20,8 @@ namespace fix::com
 
             std::string to_string() const;
 
+            void from_string(const std::string &_str);
+
             static constexpr const char MsgType = TMsgType;
     };
 }

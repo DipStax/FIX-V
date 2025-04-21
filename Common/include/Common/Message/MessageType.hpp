@@ -32,4 +32,17 @@ namespace fix
 
         using Logout = Message<'5'>;
     }
+
+    namespace err
+    {
+        constexpr const char InvalidTag[] = "0";
+        constexpr const char ReqTagMissing[] = "1";
+        constexpr const char NotSupporTag[] = "2";
+        constexpr const char UndefineTag[] = "3";
+        constexpr const char EmptyValue[] = "4";
+        constexpr const char ValueOORange[] = "5";
+        constexpr const char IncorrectFormat[] = "6";
+        constexpr const char DecryptionIssue[] = "7";
+        constexpr const char InvalidMsgType[] = "11";
+    }
 }

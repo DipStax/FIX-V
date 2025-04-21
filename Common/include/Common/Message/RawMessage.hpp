@@ -11,6 +11,8 @@
 
 namespace fix::com
 {
+    struct MsgDeserializer;
+
     template<IsTag ...Tag>
     class PositionalTag
     {
@@ -43,11 +45,13 @@ namespace fix::com
                 requires IsOptTagInList<Tag, PTags...> || IsOptTagInList<Tag, Tags...>
             std::optional<std::string> get() const;
 
-            std::string serialize() const;
-
             template<TagType Tag>
-                requires InTagListIndex<Tag, TagsList...>
+            requires InTagListIndex<Tag, TagsList...>
             constexpr meta::make_tag_list_object_t<meta::select_tag_list_t<Tag, TagsList...>> &list() noexcept;
+
+        protected:
+            [[nodiscard]] std::string serialize() const;
+            void deserialize(const std::string &_str);
 
         private:
             using TupleHelper = std::tuple<meta::make_tag_list_object_t<TagsList>..., uint8_t>;
@@ -58,17 +62,16 @@ namespace fix::com
 
     struct MsgSerializer
     {
-        public:
-            template<IsTagList ...TagsList>
-            using TupleHelper = std::tuple<meta::make_tag_list_object_t<TagsList>..., uint8_t>;
+        template<IsTagList ...TagsList>
+        using TupleHelper = std::tuple<meta::make_tag_list_object_t<TagsList>..., uint8_t>;
 
-            template<IsTag ...Tags>
-            static std::string Serialize(const std::unordered_map<TagType, std::string> &_data);
-            template<>
-            static std::string Serialize(const std::unordered_map<TagType, std::string> &_data);
+        template<IsTag ...Tags>
+        static std::string Serialize(const std::unordered_map<TagType, std::string> &_data);
+        template<>
+        static std::string Serialize(const std::unordered_map<TagType, std::string> &_data);
 
-            template<IsTagList ...TagsList>
-            static std::string Serialize(const TupleHelper<TagsList...> &_data);
+        template<IsTagList ...TagsList>
+        static std::string Serialize(const TupleHelper<TagsList...> &_data);
 
         private:
             static constexpr const char sep = '\01';

@@ -48,6 +48,13 @@ namespace fix::com
         return format + MsgSerializer::Serialize<Tags...>(m_data);
     }
 
+    template<IsTag ...PTags, IsTagList ...TagsList, IsTag ...Tags>
+    void RawMessage<PositionalTag<PTags...>, TagLists<TagsList...>, Tags...>::deserialize(const std::string &_msg)
+    {
+        // if (((size_t == PTags::Tag) || ...) || ((size_t == Tags::Tag) || ...))
+        //     try_emplace();
+    }
+
     template<IsTag ...Tags>
     std::string MsgSerializer::Serialize(const std::unordered_map<uint16_t, std::string> &_data)
     {
@@ -75,7 +82,8 @@ namespace fix::com
             format = std::to_string(Tag::Tag) + "=" + _data.at(Tag::Tag) + sep;
         if constexpr (sizeof...(Tags) != 0)
             return format + MsgSerializer::SerializeImp<Tags...>(_data);
-        return format;
+        else
+            return format;
     }
 
     template<IsReqTag Tag, IsTag ...Tags>
@@ -87,16 +95,16 @@ namespace fix::com
 
         if constexpr (sizeof...(Tags) != 0)
             return format + MsgSerializer::SerializeImp<Tags...>(_data);
-        return format;
+        else
+            return format;
     }
 
     template<size_t Count, size_t It, IsTagList ...TagsList>
     std::string MsgSerializer::SerializeImp(const TupleHelper<TagsList...> &_data)
     {
-        if constexpr (Count - 2 == It) {
+        if constexpr (Count - 2 == It)
             return std::get<It>(_data).serialize();
-        } else {
+        else
             return std::get<It>(_data).serialize() + SerializeImp<Count, It + 1, TagsList...>(_data);
-        }
     }
 }

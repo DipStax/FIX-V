@@ -25,15 +25,21 @@ namespace fix::serv
 
             void start();
 
+            void setName(const std::string &_name);
+            [[nodiscard]] const std::string &getName() const;
+
+            void setSeqNum(size_t _seqnum)
+            [[nodiscard]] size_t getSeqNum() const;
             [[nodiscard]] size_t newSeqNum();
 
         private:
             void received(std::error_code _ec, size_t _len);
 
             asio::ip::tcp::socket m_socket;
+            char m_buffer[NET_BUFFER_SIZE];
+            std::shared_ptr<InputQueue> m_output = nullptr;
 
             size_t m_seqnum = 0;
-            char m_buffer[NET_BUFFER_SIZE];
-            std::shared_ptr<InputQueue> m_output;
+            std::string m_name{};
     };
 }

@@ -22,7 +22,14 @@ namespace fix::com
             Header();
             ~Header() = default;
 
+            [[nodiscard]] std::string to_string() const;
+
+            void from_string(const std::string &_str);
+
             static constexpr const char MsgType = TMsgType;
+
+        private:
+            size_t getBodyLength();
     };
 }
 
